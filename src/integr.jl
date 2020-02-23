@@ -55,6 +55,123 @@ using Distributed
 using BenchmarkTools
 tau=[0.0 1.0 0.0; 0.0 0.0 1.0; 0.0 0.0 0.0];
 
+function TT_simd(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false)
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+    @simd for h=0:alpha
+		@simd for k=0:beta
+            @simd for m=0:gamma
+				s2 = 0.0
+                @simd for i=0:h
+					s3 = 0.0
+					@simd for j=0:k
+						s4 = 0.0
+						@simd for l=0:m
+							@inbounds s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l )
+						end
+						@inbounds s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+					end
+					@inbounds s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+				end
+				@inbounds s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
+			end
+		end
+	end
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
+
+function TT_thread_interior(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false)
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+    tot = alpha + beta + gamma + 1
+    shared = Vector{Float64}(undef,tot)
+    for h=0:alpha
+		for k=0:beta
+            for m=0:gamma
+				s2 = 0.0
+                for i=0:h
+					s3 = 0.0
+					for j=0:k
+						s4 = 0.0
+						Threads.@threads for l=0:m
+							shared[l+1] = binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l )
+						end
+                        s4=sum(shared)
+						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+					end
+					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+				end
+				s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
+			end
+		end
+	end
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
+
+
+function TT_simple_loop(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false)
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+    tot = alpha + beta + gamma + 1
+    vec = Vector{Float64}(undef,tot)
+    for h=0:alpha
+		for k=0:beta
+            for m=0:gamma
+				s2 = 0.0
+                for i=0:h
+					s3 = 0.0
+					for j=0:k
+						s4 = 0.0
+						for l=0:m
+							s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l )
+						end
+						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+					end
+					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+				end
+				vec[m+1] = binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
+			end
+            s1 += sum(vec)
+		end
+	end
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
 
 function TT_distributed(
 tau::Array{Float64,2},
@@ -92,7 +209,7 @@ signedInt::Bool=false)
 		return s1 * norm(c)
 	end
 end
-function TT_threads(
+function TT_threads_exterior(
 tau::Array{Float64,2},
 alpha::Int, beta::Int, gamma::Int,
 signedInt::Bool=false)
