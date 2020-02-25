@@ -298,6 +298,33 @@ signedInt=false)::Float64
     return w
 end
 
+
+function II_simd(
+P::LAR,
+alpha::Int, beta::Int, gamma::Int,
+signedInt=false)::Float64
+    w = 0S
+    V, FV = P
+    if typeof(FV) == Array{Int64,2}
+    	FV = [FV[:,k] for k=1:size(FV,2)]
+    end
+    @simd for i=1:length(FV)
+        tau = hcat([V[:,v] for v in FV[i]]...)
+        if size(tau,2) == 3
+        	term = TT_simd(tau, alpha, beta, gamma, signedInt)
+        	if signedInt
+        		w += term
+        	else
+        		w += abs(term)
+        	end
+        elseif size(tau,2) > 3
+        	println("ERROR: FV[$(i)] is not a triangle")
+        else
+        	println("ERROR: FV[$(i)] is degenerate")
+        end
+    end
+    return w
+end
 """
 	III(P::Lar.LAR, alpha::Int, beta::Int, gamma::Int)::Float64
 
