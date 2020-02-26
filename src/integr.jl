@@ -488,6 +488,20 @@ function III(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     return w/(alpha + 1)
 end
 
+function III_012(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
+    w = 0
+    V, FV = P
+    for i=1:length(FV)
+        tau = hcat([V[:,v] for v in FV[i]]...)
+        vo,va,vb = tau[:,0],tau[:,1],tau[:,2]
+        a = va - vo
+        b = vb - vo
+        c = cross(a,b)
+        w += c[1]/norm(c) * TT(tau, alpha+1, beta, gamma)
+    end
+    return w/(alpha + 1)
+end
+
 function III_simd_interior(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P

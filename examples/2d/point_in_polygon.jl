@@ -5,6 +5,9 @@ GL = ViewerGL
 filename = "/Users/paoluzzi/Documents/dev/Plasm.jl/test/svg/Lar.svg"
 V,EV = Lar.svg2lar(filename)
 
+filename = "/home/lomilaria/space/LinearAlgebraicRepresentation.jl/test/svg/Lar.svg"
+V,EV = Lar.svg2lar(filename)
+
 GL.VIEW([
 	GL.GLLines(V,EV,GL.COLORS[1]),
 	GL.GLFrame2
