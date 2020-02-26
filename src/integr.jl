@@ -302,7 +302,7 @@ function II_simd(
 P::LAR,
 alpha::Int, beta::Int, gamma::Int,
 signedInt=false)::Float64
-    w = 0S
+    w = 0
     V, FV = P
     if typeof(FV) == Array{Int64,2}
     	FV = [FV[:,k] for k=1:size(FV,2)]
