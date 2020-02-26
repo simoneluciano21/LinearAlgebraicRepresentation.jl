@@ -304,6 +304,7 @@ alpha::Int, beta::Int, gamma::Int,
 signedInt=false)::Float64
     w = 0
     V, FV = P
+    test = 0
     if typeof(FV) == Array{Int64,2}
     	FV = [FV[:,k] for k=1:size(FV,2)]
     end
@@ -315,6 +316,36 @@ signedInt=false)::Float64
         	else
         		@inbounds w += abs(TT_simd(tau, alpha, beta, gamma, signedInt))
         	end
+        elseif size(tau,2) > 3
+        	println("ERROR: FV[$(i)] is not a triangle")
+        else
+        	println("ERROR: FV[$(i)] is degenerate")
+        end
+    end
+    return w
+end
+
+
+
+function II_distributed(
+P::LAR,
+alpha::Int, beta::Int, gamma::Int,
+signedInt=false)::Float64
+    w = 0
+    V, FV = P
+    test = 0
+    if typeof(FV) == Array{Int64,2}
+    	FV = [FV[:,k] for k=1:size(FV,2)]
+    end
+    w = @distributed (+) for i=1:length(FV)
+        tau = hcat([V[:,v] for v in FV[i]]...)
+        if size(tau,2) == 3
+        	if signedInt
+        		test = TT_simd(tau, alpha, beta, gamma, signedInt)
+        	else
+        		test = abs(TT_simd(tau, alpha, beta, gamma, signedInt))
+        	end
+        test
         elseif size(tau,2) > 3
         	println("ERROR: FV[$(i)] is not a triangle")
         else
