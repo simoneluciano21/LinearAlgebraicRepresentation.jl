@@ -431,7 +431,7 @@ signedInt=false)::Float64
 end
 
 
-function getValIII(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64)
+function getValIII(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
     tau = hcat([V[:,v] for v in FV[i]]...)
     if size(tau,2) == 3
         if signedInt
