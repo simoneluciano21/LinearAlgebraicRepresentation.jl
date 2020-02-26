@@ -461,6 +461,15 @@ function III_simd(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     return w/(alpha + 1)
 end
 
+@everywhere function getVal(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
+    tau = hcat([V[:,v] for v in FV[i]]...)
+    vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+    a = va - vo
+    b = vb - vo
+    c = cross(a,b)
+    return c[1]/norm(c) * TT_simd(tau, alpha+1, beta, gamma)
+end
+
 function III_distributed(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P
@@ -476,14 +485,6 @@ function III_distributed_sync(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float6
         getVal(V,FV,i,alpha,beta,gamma)
     end
     return w/(alpha + 1)
-end
-@everywhere function getVal(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
-    tau = hcat([V[:,v] for v in FV[i]]...)
-    vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
-    a = va - vo
-    b = vb - vo
-    c = cross(a,b)
-    return c[1]/norm(c) * TT_simd(tau, alpha+1, beta, gamma)
 end
 """
 	surface(P::Lar.LAR, signedInt::Bool=false)::Float64
