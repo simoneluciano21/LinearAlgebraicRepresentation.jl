@@ -464,13 +464,13 @@ end
 function III_distributed(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P
-    @distributed for i=1:length(FV)
+    w = @distributed (+) for i=1:length(FV)
         tau = hcat([V[:,v] for v in FV[i]]...)
         vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
         a = va - vo
         b = vb - vo
         c = cross(a,b)
-        w += c[1]/norm(c) * TT_simd(tau, alpha+1, beta, gamma)
+        c[1]/norm(c) * TT_simd(tau, alpha+1, beta, gamma)
     end
     return w/(alpha + 1)
 end
