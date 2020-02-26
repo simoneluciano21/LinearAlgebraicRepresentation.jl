@@ -207,6 +207,42 @@ signedInt::Bool=false)
 		return s1 * norm(c)
 	end
 end
+function TT_distributed_sync(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false)
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+    for h=0:alpha
+		for k=0:beta
+            for m=0:gamma
+				s2 = 0.0
+                for i=0:h
+					s3 = 0.0
+					for j=0:k
+						s4 = 0.0
+						s4 = @sync @distributed (+) for l=0:m
+							binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l )
+						end
+						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+					end
+					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+				end
+				s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
+			end
+		end
+	end
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
 
 function TT_distributed(
 tau::Array{Float64,2},
@@ -218,21 +254,21 @@ signedInt::Bool=false)
 	s1 = 0.0
     for h=0:alpha
 		for k=0:beta
-            s1 = @distributed (+) for m=0:gamma
+            for m=0:gamma
 				s2 = 0.0
                 for i=0:h
 					s3 = 0.0
 					for j=0:k
 						s4 = 0.0
-						for l=0:m
-							s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+						s4 = @distributed (+) for l=0:m
+							binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
 								h+k+m-i-j-l, i+j+l )
 						end
 						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
 					end
 					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
 				end
-				binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+				s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
 						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
 			end
 		end
@@ -362,7 +398,6 @@ signedInt=false)::Float64
 end
 
 
-
 function II_distributed(
 P::LAR,
 alpha::Int, beta::Int, gamma::Int,
@@ -374,21 +409,42 @@ signedInt=false)::Float64
     	FV = [FV[:,k] for k=1:size(FV,2)]
     end
     w = @distributed (+) for i=1:length(FV)
-        tau = hcat([V[:,v] for v in FV[i]]...)
-        if size(tau,2) == 3
-        	if signedInt
-        		test = TT_simd(tau, alpha, beta, gamma, signedInt)
-        	else
-        		test = abs(TT_simd(tau, alpha, beta, gamma, signedInt))
-        	end
-        test
-        elseif size(tau,2) > 3
-        	println("ERROR: FV[$(i)] is not a triangle")
-        else
-        	println("ERROR: FV[$(i)] is degenerate")
-        end
+        getValIII(V,FV,i,tau,alpha,beta,gamma)
     end
     return w
+end
+
+function II_distributed_sync(
+P::LAR,
+alpha::Int, beta::Int, gamma::Int,
+signedInt=false)::Float64
+    w = 0
+    V, FV = P
+    test = 0
+    if typeof(FV) == Array{Int64,2}
+    	FV = [FV[:,k] for k=1:size(FV,2)]
+    end
+    w = @sync @distributed (+) for i=1:length(FV)
+        getValIII(V,FV,i,tau,alpha,beta,gamma)
+    end
+    return w
+end
+
+
+function getValIII(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64)
+    tau = hcat([V[:,v] for v in FV[i]]...)
+    if size(tau,2) == 3
+        if signedInt
+            test = TT_simd(tau, alpha, beta, gamma, signedInt)
+        else
+            test = abs(TT_simd(tau, alpha, beta, gamma, signedInt))
+        end
+    test
+    elseif size(tau,2) > 3
+        println("ERROR: FV[$(i)] is not a triangle")
+    else
+        println("ERROR: FV[$(i)] is degenerate")
+    end
 end
 """
 	III(P::Lar.LAR, alpha::Int, beta::Int, gamma::Int)::Float64
