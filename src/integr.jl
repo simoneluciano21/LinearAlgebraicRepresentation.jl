@@ -465,7 +465,7 @@ function III_distributed(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P
     w = @distributed (+) for i=1:length(FV)
-        getVal()
+        getVal(V,FV,i)
     end
     return w/(alpha + 1)
 end
