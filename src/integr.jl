@@ -72,8 +72,7 @@ signedInt::Bool=false)
 					@simd for j=0:k
 						s4 = 0.0
 						@simd for l=0:m
-							@inbounds s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
-								h+k+m-i-j-l, i+j+l )
+							@inbounds s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(h+k+m-i-j-l, i+j+l )
 						end
 						@inbounds s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
 					end
@@ -311,11 +310,10 @@ signedInt=false)::Float64
     @simd for i=1:length(FV)
         tau = hcat([V[:,v] for v in FV[i]]...)
         if size(tau,2) == 3
-        	term = TT_simd(tau, alpha, beta, gamma, signedInt)
         	if signedInt
-        		w += term
+        		@inbounds w += TT_simd(tau, alpha, beta, gamma, signedInt)
         	else
-        		w += abs(term)
+        		@inbounds w += abs(TT_simd(tau, alpha, beta, gamma, signedInt))
         	end
         elseif size(tau,2) > 3
         	println("ERROR: FV[$(i)] is not a triangle")
