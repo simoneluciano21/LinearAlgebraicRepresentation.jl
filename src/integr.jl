@@ -409,7 +409,7 @@ signedInt=false)::Float64
     	FV = [FV[:,k] for k=1:size(FV,2)]
     end
     w = @distributed (+) for i=1:length(FV)
-        getValIII(V,FV,i,tau,alpha,beta,gamma)
+        getValII(V,FV,i,alpha,beta,gamma)
     end
     return w
 end
@@ -425,13 +425,13 @@ signedInt=false)::Float64
     	FV = [FV[:,k] for k=1:size(FV,2)]
     end
     w = @sync @distributed (+) for i=1:length(FV)
-        getValIII(V,FV,i,tau,alpha,beta,gamma)
+        getValII(V,FV,i,alpha,beta,gamma)
     end
     return w
 end
 
 
-function getValIII(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
+function getValII(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
     tau = hcat([V[:,v] for v in FV[i]]...)
     if size(tau,2) == 3
         if signedInt
