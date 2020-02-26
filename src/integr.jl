@@ -461,7 +461,7 @@ function III_simd(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     return w/(alpha + 1)
 end
 
-@everywhere function III_distributed(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
+function III_distributed(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P
     w = @distributed (+) for i=1:length(FV)
@@ -469,7 +469,7 @@ end
     end
     return w/(alpha + 1)
 end
-@everywhere function III_distributed_sync(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
+function III_distributed_sync(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P
     w = @sync @distributed (+) for i=1:length(FV)
