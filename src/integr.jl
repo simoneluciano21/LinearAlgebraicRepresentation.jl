@@ -453,13 +453,13 @@ Basic integration function on 3D space.
 
 # Example # unit 3D tetrahedron
 ```julia
-julia> V = [0.0 1.0 0.0 0.0; 0.0 0.0 1.0 0.0; 0.0 0.0 0.0 1.0]
+julia> V = [0.0 1.0 0.0 0.0 2.0; 0.0 0.0 1.0 0.0 2.0; 0.0 0.0 0.0 1.0 2.0]
 3×4 Array{Float64,2}:
  0.0  1.0  0.0  0.0
  0.0  0.0  1.0  0.0
  0.0  0.0  0.0  1.0
 
-julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4]]
+julia> FV = [[1, 2, 4], [1, 3, 2], [4, 3, 1], [2, 3, 4], [5, 1, 2]]
 4-element Array{Array{Int64,1},1}:
  [1, 2, 4]
  [1, 3, 2]
@@ -477,6 +477,21 @@ julia> Lar.III(P, 0,0,0)
 function III(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
     w = 0
     V, FV = P
+    for i=1:length(FV)
+        tau = hcat([V[:,v] for v in FV[i]]...)
+        vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+        a = va - vo
+        b = vb - vo
+        c = cross(a,b)
+        w += c[1]/norm(c) * TT(tau, alpha+1, beta, gamma)
+    end
+    return w/(alpha + 1)
+end
+
+function III_I(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
+    w = 0
+    V, FV = P
+    V=V'
     for i=1:length(FV)
         tau = hcat([V[:,v] for v in FV[i]]...)
         vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
