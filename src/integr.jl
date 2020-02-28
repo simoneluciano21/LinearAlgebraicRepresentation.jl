@@ -543,9 +543,9 @@ function getValII(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int,signedInt::Bool)
     tau = hcat([V[:,v] for v in FV[i]]...)
     if size(tau,2) == 3
         if signedInt
-            test = TT_threads_ext(tau, alpha, beta, gamma, signedInt)
+            test = TT_threads_exterior(tau, alpha, beta, gamma, signedInt)
         else
-            test = abs(TT_threads_ext(tau, alpha, beta, gamma, signedInt))
+            test = abs(TT_threads_exterior(tau, alpha, beta, gamma, signedInt))
         end
     test
     elseif size(tau,2) > 3
@@ -631,7 +631,7 @@ function getVal(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
     a = va - vo
     b = vb - vo
     c = cross(a,b)
-    return c[1]/norm(c) * TT_threads_ext(tau, alpha+1, beta, gamma)
+    return c[1]/norm(c) * TT_threads_exterior(tau, alpha+1, beta, gamma)
 end
 
 function III_distributed(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
