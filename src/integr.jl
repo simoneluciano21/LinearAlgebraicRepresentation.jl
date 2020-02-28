@@ -11,8 +11,8 @@ end
 
 function M_simd(alpha::Int, beta::Int)::Float64
     a = 0
-    @sync for l=0:(alpha + 1)
-        @async a += binomial(alpha+1,l) * (-1)^l/(l+beta+1)
+    @simd for l=0:(alpha + 1)
+        a += binomial(alpha+1,l) * (-1)^l/(l+beta+1)
     end
     return a/(alpha + 1)
 end
