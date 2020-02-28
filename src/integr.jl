@@ -265,7 +265,7 @@ signedInt::Bool=false)
                             push!(vec[Threads.threadid()] , binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
 								h+k+m-i-j-l, i+j+l ))
 						end
-                        s4=sum(vec)
+                        s4=sum(vcat(vec...))
 						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
 					end
 					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
@@ -315,7 +315,7 @@ signedInt::Bool=false)
 			end
 		end
 	end
-    s1=sum(vec)
+    s1=sum(vcat(vec...))
 	c = cross(a,b)
 	if signedInt == true
 		return s1 * norm(c) * sign(c[3])
