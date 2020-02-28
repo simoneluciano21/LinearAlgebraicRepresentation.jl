@@ -11,8 +11,8 @@ end
 
 function M_simd(alpha::Int, beta::Int)::Float64
     a = 0
-    @simd for l=0:(alpha + 1)
-        a += binomial(alpha+1,l) * (-1)^l/(l+beta+1)
+    @simd @sync for l=0:(alpha + 1)
+        @async a += binomial(alpha+1,l) * (-1)^l/(l+beta+1)
     end
     return a/(alpha + 1)
 end
@@ -107,22 +107,22 @@ signedInt::Bool=false)
 	a = va - vo
 	b = vb - vo
 	s1 = 0.0
-    @simd for h=0:alpha
-		@simd for k=0:beta
-            @simd for m=0:gamma
+    @inbounds @simd for h=0:alpha
+		@inbounds @simd for k=0:beta
+            @inbounds @simd for m=0:gamma
 				s2 = 0.0
-                @simd for i=0:h
+                @inbounds @simd for i=0:h
 					s3 = 0.0
-					@simd for j=0:k
+					@inbounds @simd for j=0:k
 						s4 = 0.0
-						@simd for l=0:m
-							@inbounds s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M_simd(h+k+m-i-j-l, i+j+l )
+						@inbounds @simd for l=0:m
+							 s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M_simd(h+k+m-i-j-l, i+j+l )
 						end
-						@inbounds s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
 					end
-					@inbounds s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
 				end
-				@inbounds s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+				s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
 						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
 			end
 		end
@@ -410,6 +410,21 @@ signedInt=false)::Float64
     return w
 end
 
+function II_async(
+P::LAR,
+alpha::Int, beta::Int, gamma::Int,
+signedInt=false)::Float64
+    w = 0
+    V, FV = P
+    test = 0
+    if typeof(FV) == Array{Int64,2}
+    	FV = [FV[:,k] for k=1:size(FV,2)]
+    end
+    @sync for i=1:length(FV)
+        @async w += getValII(V,FV,i,alpha,beta,gamma,signedInt)
+    end
+    return w
+end
 
 function II_distributed(
 P::LAR,
@@ -614,6 +629,14 @@ function III_threads(P::LAR, alpha::Int, beta::Int, gamma::Int,t=Threads.nthread
     return w/(alpha + 1)
 end
 
+function III_async(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
+    w = 0
+    V, FV = P
+    @sync for i=1:length(FV)
+        @async w += getVal(V,FV,i,alpha,beta,gamma)
+    end
+    return w/(alpha + 1)
+end
 """
 	surface(P::Lar.LAR, signedInt::Bool=false)::Float64
 
