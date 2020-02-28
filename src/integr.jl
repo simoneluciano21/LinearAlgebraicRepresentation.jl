@@ -9,6 +9,14 @@ function M(alpha::Int, beta::Int)::Float64
     return a/(alpha + 1)
 end
 
+function M_simd(alpha::Int, beta::Int)::Float64
+    a = 0
+    @simd for l=0:(alpha + 1)
+        a += binomial(alpha+1,l) * (-1)^l/(l+beta+1)
+    end
+    return a/(alpha + 1)
+end
+
 """ The main integration routine """
 function TT(
 tau::Array{Float64,2},
@@ -108,7 +116,7 @@ signedInt::Bool=false)
 					@simd for j=0:k
 						s4 = 0.0
 						@simd for l=0:m
-							@inbounds s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(h+k+m-i-j-l, i+j+l )
+							@inbounds s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M_simd(h+k+m-i-j-l, i+j+l )
 						end
 						@inbounds s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
 					end
@@ -570,7 +578,7 @@ function III_simd(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
 end
 
 function getVal(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
-    @inbounds tau = hcat([V[:,v] for v in FV[i]]...)
+    tau = hcat([V[:,v] for v in FV[i]]...)
     vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
     a = va - vo
     b = vb - vo
