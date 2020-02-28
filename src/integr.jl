@@ -435,6 +435,24 @@ signedInt=false)::Float64
     return w
 end
 
+function II_threads(
+P::LAR,
+alpha::Int, beta::Int, gamma::Int,
+signedInt=false)::Float64
+    w = 0
+    V, FV = P
+    test = 0
+    if typeof(FV) == Array{Int64,2}
+    	FV = [FV[:,k] for k=1:size(FV,2)]
+    end
+    vec=[[] for i in 1:t]
+    Threads.@threads for i=1:length(FV)
+        @inbounds push!(vec[Threads.threadid()] , getValII(V,FV,i,alpha,beta,gamma,signedInt))
+    end
+    w=sum(vcat(vec...))
+    return w
+end
+
 
 function getValII(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int,signedInt::Bool)::Float64
     tau = hcat([V[:,v] for v in FV[i]]...)
@@ -552,7 +570,7 @@ function III_simd(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float64
 end
 
 function getVal(V,FV,i::Int,alpha::Int, beta::Int, gamma::Int)::Float64
-    tau = hcat([V[:,v] for v in FV[i]]...)
+    @inbounds tau = hcat([V[:,v] for v in FV[i]]...)
     vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
     a = va - vo
     b = vb - vo
@@ -582,7 +600,7 @@ function III_threads(P::LAR, alpha::Int, beta::Int, gamma::Int,t=Threads.nthread
     V, FV = P
     vec=[[] for i in 1:t]
     Threads.@threads for i=1:length(FV)
-        push!(vec[Threads.threadid()] , getVal(V,FV,i,alpha,beta,gamma))
+        @inbounds push!(vec[Threads.threadid()] , getVal(V,FV,i,alpha,beta,gamma))
     end
     w=sum(vcat(vec...))
     return w/(alpha + 1)
