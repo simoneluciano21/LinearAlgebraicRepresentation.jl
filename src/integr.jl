@@ -55,6 +55,31 @@ signedInt::Bool=false)
 	end
 end
 
+function TT_000(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false,t=Threads.nthreads())
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+    i=0
+    j=0
+    l=0
+    h=0
+    m=0
+    k=0
+    s1= binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+            vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * binomial(h,i) * a[1]^(h-i) * b[1]^i * binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+                h+k+m-i-j-l, i+j+l )
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
+
 function TT_threads(
 tau::Array{Float64,2},
 alpha::Int, beta::Int, gamma::Int,
