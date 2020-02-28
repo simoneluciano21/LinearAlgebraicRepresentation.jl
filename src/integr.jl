@@ -55,7 +55,44 @@ signedInt::Bool=false)
 	end
 end
 
-
+function TT_threads(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false,t=Threads.nthreads())
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+    vec=[[] for i in 1:t]
+	for h=0:alpha
+		for k=0:beta
+            Threads.@threads for m=0:gamma
+				s2 = 0.0
+				for i=0:h
+					s3 = 0.0
+					for j=0:k
+						s4 = 0.0
+						for l=0:m
+							s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l )
+						end
+						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+					end
+					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+				end
+				push!(vec[Threads.threadid()] , binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2)
+			end
+		end
+	end
+    s1=sum(vcat(vec...))
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
 
 using LinearAlgebraicRepresentation
 Lar = LinearAlgebraicRepresentation
