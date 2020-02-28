@@ -576,6 +576,18 @@ function III_distributed_sync(P::LAR, alpha::Int, beta::Int, gamma::Int)::Float6
     end
     return w/(alpha + 1)
 end
+
+function III_threads(P::LAR, alpha::Int, beta::Int, gamma::Int,t=Threads.nthreads())::Float64
+    w = 0
+    V, FV = P
+    vec=[[] for i in 1:t]
+    Threads.@threads for i=1:length(FV)
+        push!(vec[Threads.threadid()] , getVal(V,FV,i,alpha,beta,gamma))
+    end
+    w=sum(vcat(vec...))
+    return w/(alpha + 1)
+end
+
 """
 	surface(P::Lar.LAR, signedInt::Bool=false)::Float64
 
