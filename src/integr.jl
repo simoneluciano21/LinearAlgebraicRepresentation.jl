@@ -262,10 +262,10 @@ signedInt::Bool=false)
 					for j=0:k
 						s4 = 0.0
 						Threads.@threads for l=0:m
-							vec[Threads.threadid()] = binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
-								h+k+m-i-j-l, i+j+l )
+							  push!(vec[Threads.threadid()] , binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l ) )
 						end
-                        s4=sum(vec)
+                        s4=vcat(vec...)
 						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
 					end
 					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
@@ -293,7 +293,6 @@ signedInt::Bool=false)
 	b = vb - vo
 	s1 = 0.0
     t=Threads.nthreads()
-
     vec=[[] for i in 1:t]
     Threads.@threads for h=0:alpha
 		for k=0:beta
@@ -311,12 +310,12 @@ signedInt::Bool=false)
 					end
 					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
 				end
-				vec[Threads.threadid()]=binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
-						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
+				push!(vec[Threads.threadid()] , binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2)
 			end
 		end
 	end
-    s1=sum(vec)
+    s1=vcat(vec...)
 	c = cross(a,b)
 	if signedInt == true
 		return s1 * norm(c) * sign(c[3])
