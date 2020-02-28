@@ -127,46 +127,6 @@ signedInt::Bool=false)
 	end
 end
 
-function TT_thread_interior(
-tau::Array{Float64,2},
-alpha::Int, beta::Int, gamma::Int,
-signedInt::Bool=false)
-	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
-	a = va - vo
-	b = vb - vo
-	s1 = 0.0
-    tot = alpha + beta + gamma + 1
-    shared = Vector{Float64}(undef,tot)
-    for h=0:alpha
-		for k=0:beta
-            for m=0:gamma
-				s2 = 0.0
-                for i=0:h
-					s3 = 0.0
-					for j=0:k
-						s4 = 0.0
-						Threads.@threads for l=0:m
-							shared[l+1] = binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
-								h+k+m-i-j-l, i+j+l )
-						end
-                        s4=sum(shared)
-						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
-					end
-					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
-				end
-				s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
-						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
-			end
-		end
-	end
-	c = cross(a,b)
-	if signedInt == true
-		return s1 * norm(c) * sign(c[3])
-	else
-		return s1 * norm(c)
-	end
-end
-
 
 function TT_simple_loop(
 tau::Array{Float64,2},
@@ -280,6 +240,50 @@ signedInt::Bool=false)
 		return s1 * norm(c)
 	end
 end
+
+
+function TT_thread_interior(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false)
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+    tot = alpha + beta + gamma + 1
+    t=Threads.nthreads()
+    vec=[[] for i in 1:t]
+    for h=0:alpha
+		for k=0:beta
+            for m=0:gamma
+				s2 = 0.0
+                for i=0:h
+					s3 = 0.0
+					for j=0:k
+						s4 = 0.0
+						Threads.@threads for l=0:m
+							vec[Threads.threadid()] = binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l )
+						end
+                        s4=sum(vec)
+						s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+					end
+					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+				end
+				s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
+			end
+		end
+	end
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
+
+
 function TT_threads_exterior(
 tau::Array{Float64,2},
 alpha::Int, beta::Int, gamma::Int,
@@ -288,7 +292,9 @@ signedInt::Bool=false)
 	a = va - vo
 	b = vb - vo
 	s1 = 0.0
-    vec=Vector{Float64}(undef,100000000)
+    t=Threads.nthreads()
+
+    vec=[[] for i in 1:t]
     Threads.@threads for h=0:alpha
 		for k=0:beta
             for m=0:gamma
@@ -305,7 +311,7 @@ signedInt::Bool=false)
 					end
 					s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
 				end
-				vec[h+1]=binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+				vec[Threads.threadid()]=binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
 						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
 			end
 		end
