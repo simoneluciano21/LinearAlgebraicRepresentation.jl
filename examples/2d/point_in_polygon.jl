@@ -68,19 +68,27 @@ function pointsinout_simd(V,EV, n=2_000_000)
 	point_on = []
 	classify = Lar.pointInPolygonClassification(V,EV)
 	@inbounds @simd for k=1:n
-		pushQueryPoint(point_in,point_out,point_on)
+		pushQueryPoint(point_in,point_out,point_on,classify)
 	end
 	#GL.GLPoints(queryPoint,GL.COLORS[2])
 	return point_in,point_out,point_on
 end
 
 function pointsinout_distributed(V,EV, n=2_000_000)
-	point_in = []
-	point_out = []
-	point_on = []
+	point_in =  SharedArray{Array{Any,1}}
+	point_out =  SharedArray{Array{Any,1}}
+	point_on =  SharedArray{Array{Any,1}}
 	classify = Lar.pointInPolygonClassification(V,EV)
-	@distributed for k=1:n
-		pushQueryPoint(point_in,point_out,point_on)
+	@sync @distributed for k=1:n
+		queryPoint = rand(1,2)
+		inOut = classify(queryPoint)
+		if inOut=="p_in"
+			push!(point_in, queryPoint);
+		elseif inOut=="p_out"
+			push!(point_out, queryPoint);
+		elseif inOut=="p_on"
+			push!(point_on, queryPoint);
+		end
 	end
 	#GL.GLPoints(queryPoint,GL.COLORS[2])
 	return point_in,point_out,point_on
@@ -92,13 +100,13 @@ function pointsinout_tasks(V,EV, n=2_000_000)
 	point_on = []
 	classify = Lar.pointInPolygonClassification(V,EV)
 	@sync for k=1:n
-		@async pushQueryPoint(point_in,point_out,point_on)
+		@async pushQueryPoint(point_in,point_out,point_on,classify)
 	end
 	#GL.GLPoints(queryPoint,GL.COLORS[2])
 	return point_in,point_out,point_on
 end
 
-function pushQueryPoint(point_in,point_out,point_on)
+function pushQueryPoint(point_in,point_out,point_on,classify)
 	queryPoint = rand(1,2)
 	inOut = classify(queryPoint)
 	if inOut=="p_in"
