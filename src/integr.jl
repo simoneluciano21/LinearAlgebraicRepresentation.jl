@@ -55,6 +55,44 @@ signedInt::Bool=false)
 	end
 end
 
+function TT_tasks(
+tau::Array{Float64,2},
+alpha::Int, beta::Int, gamma::Int,
+signedInt::Bool=false)
+	vo,va,vb = tau[:,1],tau[:,2],tau[:,3]
+	a = va - vo
+	b = vb - vo
+	s1 = 0.0
+	@sync for h=0:alpha
+		@sync for k=0:beta
+			@sync for m=0:gamma
+				s2 = 0.0
+				@sync for i=0:h
+					s3 = 0.0
+					@sync for j=0:k
+						s4 = 0.0
+						@sync for l=0:m
+							@async s4 += binomial(m,l) * a[3]^(m-l) * b[3]^l * M(
+								h+k+m-i-j-l, i+j+l )
+						end
+						@async s3 += binomial(k,j) * a[2]^(k-j) * b[2]^j * s4
+					end
+					@async s2 += binomial(h,i) * a[1]^(h-i) * b[1]^i * s3;
+				end
+				@async s1 += binomial(alpha,h) * binomial(beta,k) * binomial(gamma,m) *
+						vo[1]^(alpha-h) * vo[2]^(beta-k) * vo[3]^(gamma-m) * s2
+			end
+		end
+	end
+	c = cross(a,b)
+	if signedInt == true
+		return s1 * norm(c) * sign(c[3])
+	else
+		return s1 * norm(c)
+	end
+end
+
+
 function TT_000(
 tau::Array{Float64,2},
 alpha::Int, beta::Int, gamma::Int,
